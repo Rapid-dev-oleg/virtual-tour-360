@@ -33,8 +33,6 @@ export default function GuidedCapture() {
   const [cameraStarted, setCameraStarted] = useState(false);
 
   // Settings
-  const [devices, setDevices] = useState([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [zoom, setZoom] = useState(1);
   const [facingMode, setFacingMode] = useState('environment');
   const [showSettings, setShowSettings] = useState(false);
@@ -50,21 +48,7 @@ export default function GuidedCapture() {
     console.log('[GuidedCapture]', msg);
   };
 
-  // ── Enumerate cameras ──
-  useEffect(() => {
-    navigator.mediaDevices?.enumerateDevices()
-      .then(list => {
-        const cams = list.filter(d => d.kind === 'videoinput');
-        setDevices(cams);
-        if (cams.length > 0) {
-          // Prefer back camera
-          const back = cams.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
-          setSelectedDeviceId(back?.deviceId || cams[0].deviceId);
-        }
-        addDebug(`Found ${cams.length} camera(s)`);
-      })
-      .catch(err => addDebug(`enumerateDevices error: ${err.message}`));
-  }, []);
+
 
   // ── Core camera start with multiple fallbacks ──
   // isSwitch = true when switching cameras — keeps old video visible until new one is ready
@@ -233,7 +217,7 @@ export default function GuidedCapture() {
   // ── Manual camera start (bypasses autoplay policy) ──
   const handleManualStart = async () => {
     addDebug('Manual start clicked');
-    const ok = await startCamera(selectedDeviceId, zoom, facingMode);
+    const ok = await startCamera(null, zoom, facingMode);
     if (ok) {
       setPhase('camera-ready');
     }
@@ -379,17 +363,8 @@ export default function GuidedCapture() {
     }
   };
 
-  // ── Switch camera ──
-  const switchCamera = async (deviceId) => {
-    setSelectedDeviceId(deviceId);
-    if (phase === 'camera-ready' || phase === 'capturing') {
-      // isSwitch=true — keeps old video visible until new stream is ready
-      await startCamera(deviceId, zoom, facingMode, true);
-    }
-  };
-
-  // ── Toggle facing mode ──
-  const toggleFacingMode = () => {
+  // ── Toggle front/back camera ──
+  const toggleCamera = () => {
     const next = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(next);
     // isSwitch=true — smooth transition, no black screen
@@ -594,30 +569,12 @@ export default function GuidedCapture() {
             {/* Settings panel */}
             {showSettings && (
               <div className="space-y-3 bg-gray-800 p-3 rounded-lg">
-                {/* Camera selector */}
-                {devices.length > 0 && (
-                  <div>
-                    <label className="text-xs text-gray-400">Camera</label>
-                    <select
-                      value={selectedDeviceId}
-                      onChange={(e) => switchCamera(e.target.value)}
-                      className="w-full mt-1 p-2 bg-gray-700 rounded text-sm"
-                    >
-                      {devices.map((d) => (
-                        <option key={d.deviceId} value={d.deviceId}>
-                          {d.label || `Camera ${d.deviceId.slice(0, 8)}`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Facing mode toggle */}
+                {/* Camera toggle */}
                 <button
-                  onClick={toggleFacingMode}
-                  className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition"
+                  onClick={toggleCamera}
+                  className="w-full py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition active:scale-95"
                 >
-                  Switch to {facingMode === 'environment' ? 'Front' : 'Back'} Camera
+                  {facingMode === 'environment' ? '📷 Front Camera' : '📸 Back Camera'}
                 </button>
 
                 {/* Zoom slider */}
