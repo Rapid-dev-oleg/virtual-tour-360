@@ -67,16 +67,10 @@ export default function GuidedCapture() {
   }, []);
 
   // ── Core camera start with multiple fallbacks ──
-  const startCamera = useCallback(async (deviceId, requestedZoom, requestedFacing) => {
-    addDebug('startCamera called');
+  // isSwitch = true when switching cameras — keeps old video visible until new one is ready
+  const startCamera = useCallback(async (deviceId, requestedZoom, requestedFacing, isSwitch = false) => {
+    addDebug(`startCamera called (switch=${isSwitch})`);
     setErrorMsg('');
-    setVideoReady(false);
-
-    // Stop any existing stream
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
 
     const videoEl = videoRef.current;
     if (!videoEl) {
@@ -84,6 +78,14 @@ export default function GuidedCapture() {
       setErrorMsg('Video element not found. Please reload.');
       return false;
     }
+
+    // When doing first start (not switch) hide video until ready
+    if (!isSwitch) {
+      setVideoReady(false);
+    }
+
+    // Save old stream to stop later (for smooth switch — no black frame)
+    const oldStream = streamRef.current;
 
     try {
       // Build constraints
@@ -102,28 +104,20 @@ export default function GuidedCapture() {
         constraints.video.zoom = { ideal: requestedZoom };
       }
 
-      addDebug(`Requesting getUserMedia with device: ${deviceId?.slice(0, 8) || 'default'}...`);
+      addDebug(`getUserMedia: device=${deviceId?.slice(0, 8) || 'default'}, facing=${requestedFacing || '-'}...`);
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
       const videoTrack = stream.getVideoTracks()[0];
-      addDebug(`Got stream. Track: ${videoTrack?.label}, enabled: ${videoTrack?.enabled}, readyState: ${videoTrack?.readyState}`);
+      addDebug(`Got stream: ${videoTrack?.label}, enabled=${videoTrack?.enabled}`);
 
-      // Check capabilities
-      try {
-        const caps = videoTrack.getCapabilities();
-        addDebug(`Capabilities: ${JSON.stringify({
-          width: caps.width,
-          height: caps.height,
-          zoom: caps.zoom,
-          facingMode: caps.facingMode
-        })}`);
-      } catch (e) { /* ignore */ }
-
-      // Set srcObject
+      // Assign new stream to video element
       videoEl.srcObject = stream;
-      addDebug('srcObject assigned');
+      addDebug('srcObject assigned (new stream)');
+
+      // Force load() to ensure the video element picks up the new stream
+      videoEl.load();
 
       // Wait for video to be ready with timeout
       await new Promise((resolve, reject) => {
@@ -133,7 +127,7 @@ export default function GuidedCapture() {
 
         const onReady = () => {
           clearTimeout(timeout);
-          addDebug(`Video ready: ${videoEl.videoWidth}x${videoEl.videoHeight}, readyState: ${videoEl.readyState}`);
+          addDebug(`Video ready: ${videoEl.videoWidth}x${videoEl.videoHeight}`);
           resolve();
         };
 
@@ -144,21 +138,22 @@ export default function GuidedCapture() {
         }
       });
 
-      // Explicit play() - REQUIRED on mobile to bypass autoplay policy
-      addDebug('Calling video.play()...');
+      // Explicit play() — REQUIRED on mobile
+      addDebug('Calling play()...');
       try {
         await videoEl.play();
-        addDebug('video.play() succeeded');
+        addDebug('play() OK');
       } catch (playErr) {
-        addDebug(`video.play() failed: ${playErr.message}`);
-        // Try muted play as fallback
+        addDebug(`play() err: ${playErr.message}, trying muted...`);
         videoEl.muted = true;
-        try {
-          await videoEl.play();
-          addDebug('video.play() succeeded with muted=true');
-        } catch (playErr2) {
-          throw new Error(`Cannot play video: ${playErr2.message}`);
-        }
+        await videoEl.play();
+        addDebug('play() OK muted');
+      }
+
+      // Now that new stream is playing, stop the OLD stream (smooth — no black frame)
+      if (oldStream && oldStream !== stream) {
+        oldStream.getTracks().forEach(t => t.stop());
+        addDebug('Old stream stopped');
       }
 
       setVideoReady(true);
@@ -169,29 +164,44 @@ export default function GuidedCapture() {
     } catch (err) {
       addDebug(`Camera error: ${err.name}: ${err.message}`);
 
-      // Fallback 1: Try without deviceId constraint
-      if (deviceId) {
-        addDebug('Retrying without specific deviceId...');
-        return startCamera(null, requestedZoom, requestedFacing);
+      // If switch failed, keep old stream running
+      if (isSwitch && oldStream) {
+        addDebug('Switch failed — keeping old stream');
       }
 
-      // Fallback 2: Try with basic constraints
+      // Fallback 1: Try without deviceId constraint
+      if (deviceId) {
+        addDebug('Retrying without deviceId...');
+        return startCamera(null, requestedZoom, requestedFacing, isSwitch);
+      }
+
+      // Fallback 2: Basic constraints
       if (err.name === 'OverconstrainedError' || err.name === 'NotFoundError') {
-        addDebug('Retrying with basic constraints...');
+        addDebug('Retrying basic constraints...');
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           streamRef.current = stream;
           videoEl.srcObject = stream;
+          videoEl.load();
           await videoEl.play();
+
+          if (oldStream && oldStream !== stream) {
+            oldStream.getTracks().forEach(t => t.stop());
+          }
+
           setVideoReady(true);
           setCameraStarted(true);
-          addDebug('Camera ready with basic constraints ✓');
+          addDebug('Camera ready (basic) ✓');
           return true;
         } catch (err2) {
           addDebug(`Fallback failed: ${err2.message}`);
         }
       }
 
+      // Only hide video on first-start failure; on switch failure old stream still plays
+      if (!isSwitch) {
+        setVideoReady(false);
+      }
       setErrorMsg(`${err.name}: ${err.message}`);
       return false;
     }
@@ -373,7 +383,8 @@ export default function GuidedCapture() {
   const switchCamera = async (deviceId) => {
     setSelectedDeviceId(deviceId);
     if (phase === 'camera-ready' || phase === 'capturing') {
-      await startCamera(deviceId, zoom, facingMode);
+      // isSwitch=true — keeps old video visible until new stream is ready
+      await startCamera(deviceId, zoom, facingMode, true);
     }
   };
 
@@ -381,7 +392,8 @@ export default function GuidedCapture() {
   const toggleFacingMode = () => {
     const next = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(next);
-    startCamera(null, zoom, next);
+    // isSwitch=true — smooth transition, no black screen
+    startCamera(null, zoom, next, true);
   };
 
   // ── Render ──
