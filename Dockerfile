@@ -1,12 +1,12 @@
 # ── Stage 1: Build React frontend ──
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app/web
-COPY web/package.json web/package-lock.json* ./
-RUN npm install --legacy-peer-deps
+COPY web/package.json ./
+RUN npm install --legacy-peer-deps 2>&1
 
 COPY web/ ./
-RUN npm run build
+RUN npm run build 2>&1
 
 # ── Stage 2: Python backend ──
 FROM python:3.11-slim-bookworm
