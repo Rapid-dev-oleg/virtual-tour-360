@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
@@ -11,5 +10,13 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    // allow the ngrok tunnel host to reach the dev server
+    allowedHosts: true,
+  },
+  preview: {
+    port: 4173,
+    host: true,
+    // allow the ngrok tunnel host to reach the preview server
+    allowedHosts: true,
   },
 });
