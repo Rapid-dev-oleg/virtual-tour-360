@@ -31,13 +31,21 @@ export default function HomePage() {
   const tours = [...server, ...local];
 
   const badge = (t) =>
-    t.type === 'splat' ? '🧊 3D из видео' : t.type === 'video' ? '🎬 Видео' : '🖼 Панорамы';
+    t.type === 'splat'
+      ? '🧊 3D из видео'
+      : t.type === 'video'
+        ? '🎬 Видео'
+        : t.type === 'room'
+          ? '🧱 Комната'
+          : '🖼 Панорамы';
   const subtitle = (t) =>
     t.type === 'splat'
       ? STATUS_LABEL[t.status] || '3D-тур'
       : t.type === 'video'
         ? 'видео-проходка'
-        : `${t.scenes?.length || 0} точек`;
+        : t.type === 'room'
+          ? 'объём по размерам'
+          : `${t.scenes?.length || 0} точек`;
 
   return (
     <Screen>
@@ -82,7 +90,7 @@ export default function HomePage() {
               {!t.seed && !t.remote && (
                 <div className="flex shrink-0 gap-1">
                   <button
-                    onClick={() => nav(`/tour/${t.id}/edit`)}
+                    onClick={() => nav(`/tour/${t.id}/${t.type === 'room' ? 'room' : 'edit'}`)}
                     className="rounded-lg px-2 py-1.5 text-xs font-medium text-gray-300 hover:bg-white/10"
                   >
                     ✏️

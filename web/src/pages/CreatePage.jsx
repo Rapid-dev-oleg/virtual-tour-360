@@ -16,6 +16,9 @@ export default function CreatePage() {
     if (type === 'panorama') {
       const tour = createTour({ name: name.trim() || 'Новый тур', type });
       nav(`/tour/${tour.id}/edit`);
+    } else if (type === 'room') {
+      const tour = createTour({ name: name.trim() || 'Комната', type: 'room' });
+      nav(`/tour/${tour.id}/room`);
     } else {
       videoInput.current?.click();
     }
@@ -89,6 +92,13 @@ export default function CreatePage() {
               note="Реконструкция на GPU (KIRI, Gaussian Splatting): ~7–20 мин после загрузки."
             />
             <TypeCard
+              value="room"
+              emoji="🧱"
+              title="Комната по размерам"
+              desc="Задай размеры комнаты и загрузи фото стен/пола/потолка — соберём объёмную коробку с параллаксом. Без сервисов и датчиков."
+              note="Эксперимент: объём из обычных фото + габаритов. Лучше для прямоугольных комнат."
+            />
+            <TypeCard
               value="panorama"
               emoji="🖼"
               title="Панорамный тур"
@@ -131,7 +141,11 @@ export default function CreatePage() {
           </div>
         ) : (
           <Button className="w-full" onClick={onContinue}>
-            {type === 'panorama' ? 'Далее — добавить точки' : '🎬 Снять / выбрать видео'}
+            {type === 'panorama'
+              ? 'Далее — добавить точки'
+              : type === 'room'
+                ? 'Далее — задать размеры'
+                : '🎬 Снять / выбрать видео'}
           </Button>
         )}
       </div>

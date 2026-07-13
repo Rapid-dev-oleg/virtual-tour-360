@@ -20,3 +20,9 @@ export function fileToPanoramaDataURL(file, maxWidth = 3200, quality = 0.82) {
     img.src = url;
   });
 }
+
+// Downscale a regular photo (any aspect) to a JPEG data URL for wall/floor/ceiling
+// textures. Smaller than panoramas since many photos go into localStorage.
+export function fileToPhotoDataURL(file, maxWidth = 1600, quality = 0.8) {
+  return fileToPanoramaDataURL(file, maxWidth, quality);
+}

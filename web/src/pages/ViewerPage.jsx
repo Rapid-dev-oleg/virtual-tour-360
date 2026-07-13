@@ -4,6 +4,7 @@ import { getTour, isSeed } from '../lib/store.js';
 import { getVideoTour } from '../lib/api.js';
 import TourViewer from '../components/TourViewer.jsx';
 import SplatViewer from '../components/SplatViewer.jsx';
+import RoomViewer from '../components/RoomViewer.jsx';
 
 const PROC_TEXT = {
   uploading: 'Загрузка на сервер реконструкции…',
@@ -71,7 +72,9 @@ export default function ViewerPage() {
   const isLocalOnly = !!localTour && !isSeed(tour.id); // server & seed tours are shareable
 
   let body;
-  if (localTour && tour.type === 'video') {
+  if (localTour && tour.type === 'room') {
+    body = <RoomViewer room={tour} />;
+  } else if (localTour && tour.type === 'video') {
     body = tour.videoUrl ? (
       <video src={tour.videoUrl} controls autoPlay playsInline className="h-full w-full object-contain" />
     ) : (
