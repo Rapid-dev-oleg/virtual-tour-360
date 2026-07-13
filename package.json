@@ -1,0 +1,17 @@
+{
+  "name": "virtual-tour-360",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "install:all": "npm --prefix web install && npm --prefix server install",
+    "build": "npm --prefix web run build",
+    "start": "node --env-file=server/.env server/index.js",
+    "tunnel": "node --env-file=server/.env scripts/tunnel.mjs",
+    "demo": "npm run build && concurrently -k -n server,tunnel \"npm run start\" \"npm run tunnel\""
+  },
+  "devDependencies": {
+    "@ngrok/ngrok": "^1.7.0",
+    "concurrently": "^9.2.3"
+  }
+}

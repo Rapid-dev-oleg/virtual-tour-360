@@ -1,17 +1,43 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { listTours, deleteTour } from '../lib/store.js';
+import { listVideoTours } from '../lib/api.js';
 import { Screen, Button } from '../components/ui.jsx';
+
+const STATUS_LABEL = {
+  uploading: 'загрузка…',
+  queued: 'в очереди…',
+  processing: 'считается…',
+  ready: 'готов',
+  failed: 'ошибка',
+  expired: 'истёк',
+};
 
 export default function HomePage() {
   const nav = useNavigate();
-  const [tours, setTours] = useState(listTours());
+  const [local, setLocal] = useState(listTours());
+  const [server, setServer] = useState([]);
+
+  useEffect(() => {
+    listVideoTours().then((t) => setServer(t.map((x) => ({ ...x, remote: true }))));
+  }, []);
 
   const remove = (id) => {
     if (!confirm('Удалить тур?')) return;
     deleteTour(id);
-    setTours(listTours());
+    setLocal(listTours());
   };
+
+  const tours = [...server, ...local];
+
+  const badge = (t) =>
+    t.type === 'splat' ? '🧊 3D из видео' : t.type === 'video' ? '🎬 Видео' : '🖼 Панорамы';
+  const subtitle = (t) =>
+    t.type === 'splat'
+      ? STATUS_LABEL[t.status] || '3D-тур'
+      : t.type === 'video'
+        ? 'видео-проходка'
+        : `${t.scenes?.length || 0} точек`;
 
   return (
     <Screen>
@@ -19,31 +45,31 @@ export default function HomePage() {
         <div className="text-sm font-medium text-indigo-400">360° Туры</div>
         <h1 className="mt-1 text-2xl font-bold text-white">Мои туры</h1>
         <p className="mt-1 text-sm text-gray-400">
-          Виртуальные туры по квартире. Снимай на смартфон — без спецоборудования.
+          3D-тур из видео или панорамный — со смартфона, без спецоборудования.
         </p>
       </div>
 
       <div className="flex flex-col gap-3 px-5">
         {tours.map((t) => (
-          <div
-            key={t.id}
-            className="overflow-hidden rounded-2xl border border-white/10 bg-white/5"
-          >
+          <div key={t.id} className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
             <Link to={`/t/${t.id}`} className="block">
-              <div className="relative aspect-[16/10] w-full bg-gray-800">
+              <div className="relative flex aspect-[16/10] w-full items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
                 {t.cover ? (
                   <img src={t.cover} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-gray-500">
-                    без превью
-                  </div>
+                  <div className="text-4xl opacity-60">{t.type === 'splat' ? '🧊' : '🖼'}</div>
                 )}
                 <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
-                  {t.type === 'video' ? '🎬 Видео' : '🖼 Панорамы'}
+                  {badge(t)}
                 </span>
                 {t.seed && (
                   <span className="absolute right-3 top-3 rounded-full bg-indigo-500/90 px-2.5 py-1 text-xs font-semibold text-white">
                     демо
+                  </span>
+                )}
+                {t.type === 'splat' && t.status !== 'ready' && (
+                  <span className="absolute right-3 top-3 rounded-full bg-amber-500/90 px-2.5 py-1 text-xs font-semibold text-white">
+                    {STATUS_LABEL[t.status] || '…'}
                   </span>
                 )}
               </div>
@@ -51,13 +77,9 @@ export default function HomePage() {
             <div className="flex items-center justify-between gap-2 px-4 py-3">
               <div className="min-w-0">
                 <div className="truncate font-semibold text-white">{t.name}</div>
-                <div className="text-xs text-gray-400">
-                  {t.type === 'video'
-                    ? 'видео-проходка'
-                    : `${t.scenes?.length || 0} точек`}
-                </div>
+                <div className="text-xs text-gray-400">{subtitle(t)}</div>
               </div>
-              {!t.seed && (
+              {!t.seed && !t.remote && (
                 <div className="flex shrink-0 gap-1">
                   <button
                     onClick={() => nav(`/tour/${t.id}/edit`)}

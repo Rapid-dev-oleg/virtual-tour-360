@@ -8,3 +8,5 @@ uploads/
 outputs/
 temp/
 *.db
+server/data/
+server/uploads/
