@@ -1,19 +1,17 @@
-import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import StitchingPage from './pages/StitchingPage';
-import GuidedCapture from './components/GuidedCapture';
-import EditorPage from './pages/EditorPage';
+import HomePage from './pages/HomePage.jsx';
+import CreatePage from './pages/CreatePage.jsx';
+import EditorPage from './pages/EditorPage.jsx';
+import ViewerPage from './pages/ViewerPage.jsx';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/capture" element={<GuidedCapture />} />
-        <Route path="/stitch" element={<StitchingPage />} />
-        <Route path="/editor" element={<EditorPage />} />
-      </Routes>
-    </div>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/create" element={<CreatePage />} />
+      <Route path="/tour/:id/edit" element={<EditorPage />} />
+      <Route path="/t/:id" element={<ViewerPage />} />
+      <Route path="*" element={<HomePage />} />
+    </Routes>
   );
 }
