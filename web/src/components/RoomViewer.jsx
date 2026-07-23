@@ -2,17 +2,40 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 // A room modelled as a box (W×L×H) built from 6 inward-facing planes, each
-// textured with its assigned photo(s). Camera moves inside → parallax → "объём".
+// textured with its assigned photo(s). Camera moves inside → parallax → "depth".
 // Empty planes show a labelled placeholder so orientation is always visible.
 
 const PLANE_LABELS = {
-  front: 'Передняя',
-  back: 'Задняя',
-  left: 'Левая',
-  right: 'Правая',
-  floor: 'Пол',
-  ceiling: 'Потолок',
+  front: 'Front',
+  back: 'Back',
+  left: 'Left',
+  right: 'Right',
+  floor: 'Floor',
+  ceiling: 'Ceiling',
 };
+
+// Project an equirectangular panorama from the room centre onto any geometry
+// (walls/floor/ceiling) → parallax when the camera moves = "depth", like Yandex.
+const PANO_VERT = `
+  varying vec3 vWorld;
+  void main() {
+    vWorld = (modelMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const PANO_FRAG = `
+  precision highp float;
+  varying vec3 vWorld;
+  uniform sampler2D uPano;
+  uniform vec3 uCenter;
+  #define PI 3.141592653589793
+  void main() {
+    vec3 dir = normalize(vWorld - uCenter);
+    float u = atan(dir.z, dir.x) / (2.0 * PI) + 0.5;
+    float v = 0.5 - asin(clamp(dir.y, -1.0, 1.0)) / PI;
+    gl_FragColor = texture2D(uPano, vec2(u, v));
+  }
+`;
 
 function loadImg(src) {
   return new Promise((res) => {
@@ -57,7 +80,7 @@ async function buildTexture(photos, texW, texH, label) {
     ctx.font = `bold ${Math.round(texH / 10)}px system-ui`;
     ctx.fillText(label, texW / 2, texH / 2);
     ctx.font = `${Math.round(texH / 14)}px system-ui`;
-    ctx.fillText('↑ верх', texW / 2, texH * 0.2);
+    ctx.fillText('↑ top', texW / 2, texH * 0.2);
   }
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -107,22 +130,47 @@ export default function RoomViewer({ room }) {
       { key: 'ceiling', gw: W, gh: L, pos: [0, H / 2, 0], rot: [Math.PI / 2, 0, 0] },
     ];
 
+    // Mode A: one 360 panorama projected onto the box (Yandex-like).
+    // Mode B: per-plane composited photos.
+    const usePano = !!room?.panorama;
+    let panoTex = null;
+    if (usePano) {
+      panoTex = new THREE.TextureLoader().load(room.panorama, () => renderer.render(scene, camera));
+      panoTex.colorSpace = THREE.SRGBColorSpace;
+      panoTex.flipY = false;
+      panoTex.anisotropy = renderer.capabilities.getMaxAnisotropy(); // sharper at grazing angles (floor/walls)
+      panoTex.minFilter = THREE.LinearFilter;
+      panoTex.magFilter = THREE.LinearFilter;
+    }
+
     const meshes = [];
     defs.forEach((d) => {
-      const geo = new THREE.PlaneGeometry(d.gw, d.gh);
-      const mat = new THREE.MeshBasicMaterial({ color: 0x2a3040, side: THREE.FrontSide });
+      const geo = new THREE.PlaneGeometry(d.gw, d.gh, 8, 8);
+      let mat;
+      if (usePano) {
+        mat = new THREE.ShaderMaterial({
+          uniforms: { uPano: { value: panoTex }, uCenter: { value: new THREE.Vector3(0, 0, 0) } },
+          vertexShader: PANO_VERT,
+          fragmentShader: PANO_FRAG,
+          side: THREE.FrontSide,
+        });
+      } else {
+        mat = new THREE.MeshBasicMaterial({ color: 0x2a3040, side: THREE.FrontSide });
+      }
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(...d.pos);
       mesh.rotation.set(...d.rot);
       scene.add(mesh);
       meshes.push(mesh);
-      buildTexture(room?.planes?.[d.key], cap(d.gw * S), cap(d.gh * S), PLANE_LABELS[d.key]).then(
-        (tex) => {
-          mat.map = tex;
-          mat.color.set(0xffffff);
-          mat.needsUpdate = true;
-        },
-      );
+      if (!usePano) {
+        buildTexture(room?.planes?.[d.key], cap(d.gw * S), cap(d.gh * S), PLANE_LABELS[d.key]).then(
+          (tex) => {
+            mat.map = tex;
+            mat.color.set(0xffffff);
+            mat.needsUpdate = true;
+          },
+        );
+      }
     });
 
     // ---- look controls (drag) ----

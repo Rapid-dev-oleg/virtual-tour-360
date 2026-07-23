@@ -11,6 +11,11 @@
     "demo": "npm run build && concurrently -k -n preview,tunnel \"npm run preview\" \"npm run tunnel\""
   },
   "dependencies": {
+    "@capacitor-community/camera-preview": "^8.0.1",
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/motion": "^8.0.1",
     "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "@photo-sphere-viewer/core": "^5.11.5",
     "@photo-sphere-viewer/gyroscope-plugin": "^5.11.5",

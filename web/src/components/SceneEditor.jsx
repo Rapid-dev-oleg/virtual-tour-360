@@ -70,7 +70,7 @@ export default function SceneEditor({ scene, sceneName, placing, onPlace }) {
       {placing && (
         <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
           <span className="rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
-            Нажми на точку, куда поставить переход
+            Tap the spot where you want to place the transition
           </span>
         </div>
       )}

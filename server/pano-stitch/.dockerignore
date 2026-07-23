@@ -1,0 +1,7 @@
+venv/
+output/
+uploads/
+photos/
+__pycache__/
+*.pyc
+.git/

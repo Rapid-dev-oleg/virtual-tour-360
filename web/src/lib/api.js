@@ -16,9 +16,9 @@ export async function createVideoTour(file, name, onProgress) {
       let body = {};
       try { body = JSON.parse(xhr.responseText); } catch { /* ignore */ }
       if (xhr.status >= 200 && xhr.status < 300) resolve(body);
-      else reject(new Error(body.error || `Ошибка сервера (${xhr.status})`));
+      else reject(new Error(body.error || `Server error (${xhr.status})`));
     };
-    xhr.onerror = () => reject(new Error('Сеть недоступна'));
+    xhr.onerror = () => reject(new Error('Network unavailable'));
     xhr.send(fd);
   });
 }

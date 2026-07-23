@@ -43,7 +43,7 @@ export default function SplatViewer({ url }) {
       <div ref={ref} className="h-full w-full" />
       {error && (
         <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-red-300">
-          Не удалось загрузить 3D-сцену: {error}
+          Failed to load 3D scene: {error}
         </div>
       )}
     </div>

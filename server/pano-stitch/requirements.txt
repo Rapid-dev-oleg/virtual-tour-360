@@ -1,0 +1,7 @@
+# opencv pinned to 4.x: the 5.0.0 Stitcher produced badly drifted band geometry
+# on our validation set where 4.13 was correct (or failed loudly, which we prefer)
+opencv-python>=4.9,<5
+numpy>=1.26
+flask>=3
+anthropic>=0.90
+google-genai>=1.0

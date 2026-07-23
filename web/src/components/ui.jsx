@@ -8,7 +8,7 @@ export function TopBar({ title, back, right }) {
         <button
           onClick={() => (typeof back === 'string' ? nav(back) : nav(-1))}
           className="-ml-1 flex h-9 w-9 items-center justify-center rounded-full text-gray-300 hover:bg-white/10"
-          aria-label="Назад"
+          aria-label="Back"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />

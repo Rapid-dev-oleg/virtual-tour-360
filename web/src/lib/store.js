@@ -1,148 +1,59 @@
-// Tiny client-side store. Tours live in localStorage; seeded demo tours live in
-// code (so their share links work for ANY visitor, since their panoramas are
-// static assets shipped with the build).
+// Tour store — server-backed (no localStorage). All tours and their media live on
+// the server (/api/tours + /uploads). Every function is async.
 
-const KEY = 'vt.tours.v1';
-const asset = (p) => `${import.meta.env.BASE_URL}${p}`;
+const API = '/api/tours';
 
-// ---- Seeded demo tours ---------------------------------------------------
-export const SEED_TOURS = [
-  {
-    id: 'demo-apartment',
-    seed: true,
-    name: 'Демо: 3-комнатная квартира',
-    subtitle: 'Пример готового тура',
-    type: 'panorama',
-    createdAt: 0,
-    cover: asset('demo/tour-1.jpg'),
-    startSceneId: 's1',
-    scenes: [
-      {
-        id: 's1',
-        name: 'Гостиная',
-        panorama: asset('demo/tour-1.jpg'),
-        links: [{ nodeId: 's2', position: { yaw: '25deg', pitch: '-12deg' } }],
-      },
-      {
-        id: 's2',
-        name: 'Кухня',
-        panorama: asset('demo/tour-2.jpg'),
-        links: [
-          { nodeId: 's1', position: { yaw: '200deg', pitch: '-12deg' } },
-          { nodeId: 's3', position: { yaw: '10deg', pitch: '-10deg' } },
-        ],
-      },
-      {
-        id: 's3',
-        name: 'Спальня',
-        panorama: asset('demo/tour-3.jpg'),
-        links: [
-          { nodeId: 's2', position: { yaw: '190deg', pitch: '-12deg' } },
-          { nodeId: 's4', position: { yaw: '80deg', pitch: '-10deg' } },
-        ],
-      },
-      {
-        id: 's4',
-        name: 'Балкон',
-        panorama: asset('demo/tour-4.jpg'),
-        links: [{ nodeId: 's3', position: { yaw: '250deg', pitch: '-12deg' } }],
-      },
-    ],
-  },
-  {
-    id: 'demo-studio',
-    seed: true,
-    name: 'Демо: студия',
-    subtitle: 'Мини-тур из 2 точек',
-    type: 'panorama',
-    createdAt: 0,
-    cover: asset('demo/tour-5.jpg'),
-    startSceneId: 's1',
-    scenes: [
-      {
-        id: 's1',
-        name: 'Комната',
-        panorama: asset('demo/tour-5.jpg'),
-        links: [{ nodeId: 's2', position: { yaw: '60deg', pitch: '-10deg' } }],
-      },
-      {
-        id: 's2',
-        name: 'Вид',
-        panorama: asset('demo/sphere.jpg'),
-        links: [{ nodeId: 's1', position: { yaw: '240deg', pitch: '-10deg' } }],
-      },
-    ],
-  },
-];
+export const SEED_TOURS = []; // demo tours removed
+export function isSeed() { return false; }
 
-// ---- localStorage helpers ------------------------------------------------
-function readUser() {
+function uid(prefix = 't') {
+  return prefix + '-' + Math.random().toString(36).slice(2, 9);
+}
+
+export async function listTours() {
   try {
-    return JSON.parse(localStorage.getItem(KEY) || '[]');
+    const r = await fetch(API);
+    return r.ok ? await r.json() : [];
   } catch {
     return [];
   }
 }
 
-function writeUser(tours) {
+export async function getTour(id) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(tours));
-    return true;
-  } catch (e) {
-    // localStorage quota — most likely a large base64 panorama.
-    console.error('Не удалось сохранить тур (переполнено хранилище браузера)', e);
-    return false;
+    const r = await fetch(`${API}/${id}`);
+    return r.ok ? await r.json() : null;
+  } catch {
+    return null;
   }
 }
 
-// ---- Public API ----------------------------------------------------------
-export function listTours() {
-  // user tours first (newest on top), then seeds
-  const user = readUser().sort((a, b) => b.createdAt - a.createdAt);
-  return [...user, ...SEED_TOURS];
+export async function createTour({ name, type }) {
+  const r = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, type }),
+  });
+  return r.ok ? await r.json() : null;
 }
 
-export function getTour(id) {
-  return readUser().find((t) => t.id === id) || SEED_TOURS.find((t) => t.id === id) || null;
+// saves the full tour (server externalizes data-URL media to files) → returns the
+// saved tour (with media as URLs), or null on failure.
+export async function saveTour(tour) {
+  try {
+    const r = await fetch(`${API}/${tour.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tour),
+    });
+    return r.ok ? await r.json() : null;
+  } catch {
+    return null;
+  }
 }
 
-export function isSeed(id) {
-  return SEED_TOURS.some((t) => t.id === id);
-}
-
-function uid(prefix = 't') {
-  // no Math.random dependency on server; fine in browser
-  return prefix + '-' + Math.random().toString(36).slice(2, 9);
-}
-
-export function createTour({ name, type }) {
-  const tour = {
-    id: uid('t'),
-    seed: false,
-    name: name || 'Без названия',
-    type,
-    createdAt: Date.now(),
-    cover: null,
-    startSceneId: null,
-    scenes: [],
-    videoUrl: null,
-  };
-  const tours = readUser();
-  tours.push(tour);
-  writeUser(tours);
-  return tour;
-}
-
-export function saveTour(tour) {
-  const tours = readUser();
-  const i = tours.findIndex((t) => t.id === tour.id);
-  if (i === -1) tours.push(tour);
-  else tours[i] = tour;
-  return writeUser(tours);
-}
-
-export function deleteTour(id) {
-  writeUser(readUser().filter((t) => t.id !== id));
+export async function deleteTour(id) {
+  try { await fetch(`${API}/${id}`, { method: 'DELETE' }); } catch { /* ignore */ }
 }
 
 export { uid };

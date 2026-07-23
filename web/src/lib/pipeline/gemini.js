@@ -1,24 +1,24 @@
 /**
- * ⚠️ КАРКАС / STUB — НЕ ИСПОЛЬЗУЕТСЯ, НЕ ВЫЗЫВАЕТСЯ, НЕ ТЕСТИРУЕТСЯ.
+ * ⚠️ SCAFFOLD / STUB — NOT USED, NOT CALLED, NOT TESTED.
  *
- * «Умный слой» вокруг реконструкции на базе Gemini. Сам Gemini НЕ делает
- * видео→3D (это делает сервис реконструкции — см. reconstruct.js). Здесь —
- * только те задачи, где LLM реально полезна: контроль качества съёмки ДО
- * дорогой GPU-реконструкции, авторазметка сцен, описание объявления.
+ * A Gemini-based "smart layer" around reconstruction. Gemini itself does NOT do
+ * video→3D (the reconstruction service does — see reconstruct.js). Here we only
+ * handle tasks where an LLM is actually useful: capture quality control BEFORE
+ * the expensive GPU reconstruction, auto-labeling scenes, and listing descriptions.
  *
- * Ничего не подключено к приложению. Реальные вызовы появятся, когда будет
- * принято решение по сервису и добавлен ключ (GEMINI_API_KEY / бэкенд-прокси).
+ * Nothing is wired into the app. Real calls will appear once a service is chosen
+ * and a key is added (GEMINI_API_KEY / backend proxy).
  *
- * Предполагаемая модель: gemini-2.x/3 flash (нативный вход видео).
- * Вызовы ДОЛЖНЫ идти через свой бэкенд-прокси, а не из браузера (ключ секретный).
+ * Assumed model: gemini-2.x/3 flash (native video input).
+ * Calls MUST go through your own backend proxy, not from the browser (the key is secret).
  */
 
 export const GEMINI_STUB = true;
 const NOT_IMPLEMENTED = 'GEMINI_NOT_IMPLEMENTED';
 
 /**
- * QC съёмки перед реконструкцией. Экономит деньги на GPU: не гнать плохое видео.
- * @param {Blob|File} _video — видео-проходка
+ * Capture QC before reconstruction. Saves GPU money: don't process bad video.
+ * @param {Blob|File} _video — video walkthrough
  * @returns {Promise<{ ok:boolean, score:number, issues:string[] }>}
  *   score 0..1; issues: ['too_dark','too_fast','low_coverage','single_pass',...]
  */
@@ -27,17 +27,17 @@ export async function analyzeCaptureQuality(_video) {
 }
 
 /**
- * Распознать комнаты и предложить названия точек по видео.
+ * Detect rooms and suggest point labels from the video.
  * @param {Blob|File} _video
  * @returns {Promise<Array<{ label:string, tSeconds:number }>>}
- *   напр. [{label:'Кухня', tSeconds:12}, {label:'Спальня', tSeconds:41}]
+ *   e.g. [{label:'Kitchen', tSeconds:12}, {label:'Bedroom', tSeconds:41}]
  */
 export async function detectRooms(_video) {
   throw new Error(NOT_IMPLEMENTED);
 }
 
 /**
- * Сгенерировать текст объявления/описание тура по видео + метаданным.
+ * Generate listing copy / tour description from the video + metadata.
  * @param {{ video?:Blob, rooms?:string[], area?:number }} _input
  * @returns {Promise<{ title:string, description:string }>}
  */

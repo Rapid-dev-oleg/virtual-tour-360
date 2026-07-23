@@ -11,28 +11,28 @@ export default function CaptureHelp({ defaultOpen = false }) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-amber-200"
       >
-        <span>❓ Как снять 360°-фото телефоном (без 360-камеры)</span>
+        <span>❓ How to capture a 360° photo with your phone (no 360 camera)</span>
         <span className="text-amber-300/70">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div className="border-t border-amber-400/10 px-4 py-3 text-sm text-gray-300">
           <ol className="ml-4 list-decimal space-y-1.5">
             <li>
-              Установи бесплатное приложение <b>Google Street View</b> (iOS/Android) или открой
-              режим <b>«Фотосфера»</b> в Камере на Android.
+              Install the free <b>Google Street View</b> app (iOS/Android), or open
+              the <b>«Photo Sphere»</b> mode in the Android Camera.
             </li>
             <li>
-              «Создать фотосферу» → наводи телефон на кружки-точки, приложение <b>само склеит</b> полную
-              сферу 360°×180°.
+              «Create photo sphere» → point your phone at the dots, and the app will <b>stitch</b> a full
+              360°×180° sphere for you.
             </li>
-            <li>Сохрани готовое фото в галерею телефона.</li>
+            <li>Save the finished photo to your phone's gallery.</li>
             <li>
-              Вернись сюда, нажми <b>«+ точка»</b> и выбери это фото — оно встанет как панорама.
+              Come back here, tap <b>«+ point»</b> and pick this photo — it will load as a panorama.
             </li>
           </ol>
           <p className="mt-2 text-xs text-amber-300/80">
-            ⚠️ Обычное фото или режим «Панорама» (широкая полоса) не подойдут — нужна именно сфера
-            (соотношение сторон 2:1).
+            ⚠️ A regular photo or «Panorama» mode (a wide strip) won't work — you need an actual sphere
+            (2:1 aspect ratio).
           </p>
         </div>
       )}
